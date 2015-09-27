@@ -19,6 +19,12 @@ class TrackingReply(object):
     def user_string(self):
         raise NotImplemented()
 
+    def __eq__(self, other):
+        return self.user_string() == other.user_string()
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+
 class StringTrackingReply(TrackingReply):
     def __init__(self, info):
         if not ((type(info) is str) or (type(info) is unicode)):

@@ -18,7 +18,7 @@ def get_serviceable_requests():
                      }
                     )
         for record in cur:
-            yield record
+            yield (record[0], record[1], StringTrackingReply(record[2]))
 
 def insert_request(tracking_code, chat_id, value=None):
     with conn.cursor() as cur:
