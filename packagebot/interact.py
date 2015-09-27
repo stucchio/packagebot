@@ -19,7 +19,7 @@ def _unable_to_find_tracking_code(tracking_code):
 
 trackers = [usps.USPSApiTracker()]
 
-def pull_updates(long_poll_timeout=60, limit=100):
+def pull_updates(long_poll_timeout, limit):
     _log.debug("Polling for updates, timeout=%s, limit=%s", long_poll_timeout, limit)
     updates = bot.getUpdates(offset=data.last_update_id()+1, limit=limit, timeout=long_poll_timeout)
     _log.info("Received %s updates from telegram", len(updates))

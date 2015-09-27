@@ -5,12 +5,18 @@ from usps import StringTrackingReply
 
 conn = psycopg2.connect(database=config.SQL_DB, user=config.SQL_USER, password=config.SQL_PASSWORD, host=config.SQL_HOST, port=config.SQL_PORT)
 
-UPDATE_INTERVAL = timedelta(minutes=30)
-
 def get_serviceable_requests():
     with conn.cursor() as cur:
-        too_old = datetime.now() - UPDATE_INTERVAL
-        cur.execute("SELECT tracking_code, chat_id, value FROM tracking_requests WHERE (last_update IS NULL) OR (last_update < %(tooold)s);", {'tooold' : too_old })
+        now = datetime.now()
+        too_new = now - config.UPDATE_INTERVAL
+        too_old = now - config.REQUEST_EXPIRATION_TIME_DELTA
+        cur.execute("""SELECT tracking_code, chat_id, value FROM tracking_requests
+                               WHERE ((last_update IS NULL) OR (last_update < %(toonew)s)) AND
+                                     (requested_at > %(tooold)s);""",
+                    {'toonew' : too_new,
+                     'tooold' : too_old
+                     }
+                    )
         for record in cur:
             yield record
 
