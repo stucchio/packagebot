@@ -12,14 +12,14 @@ def _invalid_message(packageid):
     return "The tracking code " + str(packageid) + " is invalid."
 
 def _update_message(packageid, info):
-    return str(packageid) + ": " + info
+    return str(packageid) + ": " + info.user_string()
 
 def _unable_to_find_tracking_code(tracking_code):
     return "We were unable to find a package for '" + str(tracking_code) + "'. We'll try again later and notify you if we find anything."
 
-trackers = [usps.USPSTracker()]
+trackers = [usps.USPSApiTracker()]
 
-def pull_updates(long_poll_timeout=10, limit=100):
+def pull_updates(long_poll_timeout=60, limit=100):
     _log.debug("Polling for updates, timeout=%s, limit=%s", long_poll_timeout, limit)
     updates = bot.getUpdates(offset=data.last_update_id()+1, limit=limit, timeout=long_poll_timeout)
     _log.info("Received %s updates from telegram", len(updates))
@@ -43,8 +43,8 @@ def pull_updates(long_poll_timeout=10, limit=100):
             if t.maybe_valid(tracking_code):
                 d = data.insert_request(tracking_code, chat_id)
                 if (not (d is None)):
-                    bot.sendMessage(chat_id=chat_id, text=_update_message(tracking_code, d[0]))
-                    _log.info("Received request for tracking code %s from %s which already existed. Replied with cached data: %s", tracking_code, chat_id, d[0])
+                    bot.sendMessage(chat_id=chat_id, text=_update_message(tracking_code, d))
+                    _log.info("Received request for tracking code %s from %s which already existed. Replied with cached data: %s", tracking_code, chat_id, d)
                 else:
                     _log.info("Received request for tracking code %s from %s. Will begin tracking.", tracking_code, chat_id)
 

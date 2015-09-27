@@ -1,6 +1,7 @@
 import psycopg2
 import config
 from datetime import datetime, timedelta
+from usps import StringTrackingReply
 
 conn = psycopg2.connect(database=config.SQL_DB, user=config.SQL_USER, password=config.SQL_PASSWORD, host=config.SQL_HOST, port=config.SQL_PORT)
 
@@ -26,11 +27,14 @@ def insert_request(tracking_code, chat_id, value=None):
             cur.execute("SELECT value FROM tracking_requests WHERE tracking_code=%s AND chat_id=%s;", (tracking_code, chat_id))
             result = cur.fetchone()
             conn.rollback()
-            return result
+            return StringTrackingReply(result[0])
 
 def update_request(tracking_code, chat_id, value):
     with conn.cursor() as cur:
-        cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (value, datetime.now(), tracking_code, chat_id))
+        if value is None:
+            cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (None, datetime.now(), tracking_code, chat_id))
+        else:
+            cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (value.user_string(), datetime.now(), tracking_code, chat_id))
         conn.commit()
 
 def last_update_id():
