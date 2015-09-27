@@ -46,6 +46,11 @@ def update_request(tracking_code, chat_id, value):
             cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (value.user_string(), datetime.now(), tracking_code, chat_id))
         conn.commit()
 
+def delete_requests(chat_id):
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM tracking_requests WHERE chat_id=%s;", (chat_id,))
+        conn.commit()
+
 def last_update_id():
     with conn.cursor() as cur:
         cur.execute("SELECT max(update_id) FROM messages_viewed;")

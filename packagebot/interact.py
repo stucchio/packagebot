@@ -19,6 +19,13 @@ def _unable_to_find_tracking_code(tracking_code):
 
 trackers = [usps.USPSApiTracker()]
 
+START_MSG = """Welcome to the tracking bot.
+
+To track a package (currently only USPS), just tell me it's tracking code and I'll keep you updated.
+
+To stop receiving updates, just type `stop`.
+"""
+
 def pull_updates(long_poll_timeout, limit):
     _log.debug("Polling for updates, timeout=%s, limit=%s", long_poll_timeout, limit)
     updates = bot.getUpdates(offset=data.last_update_id()+1, limit=limit, timeout=long_poll_timeout)
@@ -32,6 +39,15 @@ def pull_updates(long_poll_timeout, limit):
             max_update_id = max(max_update_id, u.update_id)
         tracking_code = u.message.text
         chat_id = u.message.chat_id
+
+        if (tracking_code.lower() == "/start") or (tracking_code.lower() == "/help"):
+            bot.sendMessage(chat_id=chat_id, text = START_MSG)
+            continue
+
+        if (tracking_code.lower() == 'stop'):
+            data.delete_requests(chat_id)
+            bot.sendMessage(chat_id=chat_id, text = "I'll stop sending you updates.")
+            continue
 
         maybe_valid = [ t.maybe_valid(tracking_code) for t in trackers]
         if sum(maybe_valid) == 0:
