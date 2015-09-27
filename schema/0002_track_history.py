@@ -4,6 +4,6 @@ CREATE TABLE messages_viewed(
   last_update TIMESTAMP NOT NULL
 );
 """, """
-DROP TABLE updates_viewed;
+DROP TABLE messages_viewed;
 """
     )
