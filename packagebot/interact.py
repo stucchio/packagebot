@@ -42,6 +42,7 @@ def pull_updates(long_poll_timeout=60, limit=100):
         for t in trackers:
             if t.maybe_valid(tracking_code):
                 d = data.insert_request(tracking_code, chat_id)
+                _log.info("Received %s from inserting %s, %s", d, tracking_code, chat_id)
                 if (not (d is None)):
                     bot.sendMessage(chat_id=chat_id, text=_update_message(tracking_code, d))
                     _log.info("Received request for tracking code %s from %s which already existed. Replied with cached data: %s", tracking_code, chat_id, d)

@@ -27,7 +27,10 @@ def insert_request(tracking_code, chat_id, value=None):
             cur.execute("SELECT value FROM tracking_requests WHERE tracking_code=%s AND chat_id=%s;", (tracking_code, chat_id))
             result = cur.fetchone()
             conn.rollback()
-            return StringTrackingReply(result[0])
+            if (result[0] is None):
+                return None
+            else:
+                return StringTrackingReply(result[0])
 
 def update_request(tracking_code, chat_id, value):
     with conn.cursor() as cur:

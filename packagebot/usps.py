@@ -21,10 +21,15 @@ class TrackingReply(object):
 
 class StringTrackingReply(TrackingReply):
     def __init__(self, info):
+        if not ((type(info) is str) or (type(info) is unicode)):
+            raise TypeError("Info must be a string or unicode.")
         self._info = info
 
     def user_string(self):
         return self._info
+
+    def __str__(self):
+        return "StringTrackingReply(" + self._info + ")"
 
 class USPSScrapingTracker(object):
     name = "USPS-scrape"
@@ -89,4 +94,8 @@ class USPSApiTracker(object):
         data = requests.get(url)
         _log.info("Received tracking info. Size was %s bytes.", len(data.text))
         dom = minidom.parseString(data.text)
-        return self._parse_summary(dom)
+        try:
+            return self._parse_summary(dom)
+        except IndexError, e:
+            _log.info("Unable to retrieve tracking info via API for %s", tracking_code)
+            return None
