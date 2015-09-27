@@ -5,6 +5,8 @@ I felt like playing with telegram, and I had some packages on the way, so I made
 To use: Send a telegram message to `Incoming_pkg_bot` which contains the tracking code of your package. Currently USPS only.
 You'll receive updates via telegram as the package moves.
 
+Just type `stop` to stop receiving messages.
+
 To run this bot, do the following:
 
 1. Create a telegram bot, instructions [here](https://core.telegram.org/bots).
