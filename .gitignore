@@ -1,0 +1,3 @@
+*.pyc
+pyenv
+schema/.yoyo-migrate
