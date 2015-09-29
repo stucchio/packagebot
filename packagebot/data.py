@@ -10,7 +10,7 @@ def get_serviceable_requests():
         now = datetime.now()
         too_new = now - config.UPDATE_INTERVAL
         too_old = now - config.REQUEST_EXPIRATION_TIME_DELTA
-        cur.execute("""SELECT tracking_code, chat_id, value FROM tracking_requests
+        cur.execute("""SELECT tracking_code, chat_id, value, sent_could_not_find FROM tracking_requests
                                WHERE ((last_update IS NULL) OR (last_update < %(toonew)s)) AND
                                      (requested_at > %(tooold)s);""",
                     {'toonew' : too_new,
@@ -19,9 +19,9 @@ def get_serviceable_requests():
                     )
         for record in cur:
             if record[2] is None:
-                yield (record[0], record[1], None)
+                yield (record[0], record[1], None, record[3])
             else:
-                yield (record[0], record[1], StringTrackingReply(record[2]))
+                yield (record[0], record[1], StringTrackingReply(record[2]), record[3])
 
 def insert_request(tracking_code, chat_id, value=None):
     with conn.cursor() as cur:
@@ -47,6 +47,11 @@ def update_request(tracking_code, chat_id, value):
             cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (None, datetime.now(), tracking_code, chat_id))
         else:
             cur.execute("UPDATE tracking_requests SET value=%s, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (value.user_string(), datetime.now(), tracking_code, chat_id))
+        conn.commit()
+
+def mark_cant_find_request(tracking_code, chat_id):
+    with conn.cursor() as cur:
+        cur.execute("UPDATE tracking_requests SET sent_could_not_find=TRUE, last_update=%s WHERE tracking_code=%s AND chat_id=%s;", (datetime.now(), tracking_code, chat_id))
         conn.commit()
 
 def delete_requests(chat_id):

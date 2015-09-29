@@ -71,7 +71,7 @@ def pull_updates(long_poll_timeout, limit):
 
 def handle_old_requests():
     for r in data.get_serviceable_requests():
-        tracking_code, chat_id, value = r
+        tracking_code, chat_id, value, sent_could_not_find = r
         _log.info("Requesting tracking info for %s", r)
         info = None
         for t in trackers:
@@ -81,8 +81,9 @@ def handle_old_requests():
                 if not (info is None):
                     break
 
-        if info is None:
+        if (info is None) and (not sent_could_not_find):
             bot.sendMessage(chat_id=chat_id, text = _unable_to_find_tracking_code(tracking_code))
+            data.mark_cant_find_request(tracking_code, chat_id)
             _log.info("Notified user %s that we cannot find info on %s", chat_id, tracking_code)
         else:
             if (info != value):

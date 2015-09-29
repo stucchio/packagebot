@@ -54,7 +54,6 @@ class USPSScrapingTracker(object):
         url = "https://tools.usps.com/go/TrackConfirmAction_input?qtc_tLabels1=" + str(tracking_code)
         data = requests.get(url, verify=False,headers=headers)
         soup = BeautifulSoup(data.text, 'html.parser')
-        # latest = soup.find_all("tr", 'detail-wrapper latest-detail')
         try:
             text_update = soup.find_all('p', 'tracking-summary-details')[0]
             return StringTrackingReply(text_update.text.strip())
@@ -78,7 +77,6 @@ class USPSApiTrackingReply(TrackingReply):
         if (not (self._state is None)) and (self._city is None):
             return self._state
         return "Unknown Location"
-
 
     def user_string(self):
         return "Your item " + self._event + " at " + self._location() + " at " + self._timestamp.strftime(config.DATE_FORMAT)
@@ -140,8 +138,10 @@ class USPSApiTracker(object):
         except USPSParsingError:
             _log.debug("Could not parse summary, attempting to parse details.")
             details = self._parse_details(dom)
-            print details
-            return details[0]
+            if len(details) > 0:
+                return details[0]
+            else:
+                return None
         except IndexError, e:
             _log.info("Unable to retrieve tracking info via API for %s", tracking_code)
             return None
