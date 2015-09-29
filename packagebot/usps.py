@@ -20,7 +20,10 @@ class TrackingReply(object):
         raise NotImplemented()
 
     def __eq__(self, other):
-        return self.user_string() == other.user_string()
+        if other is None:
+            return False
+        else:
+            return self.user_string() == other.user_string()
 
     def __ne__(self, other):
         return (not self.__eq__(other))
@@ -67,32 +70,64 @@ class USPSApiTrackingReply(TrackingReply):
         self._city = city
         self._state = state
 
+    def _location(self):
+        if (not (self._state is None)) and (not (self._city is None)):
+            return self._city + ", " + self._state
+        if (self._state is None) and (not (self._city is None)):
+            return self._city
+        if (not (self._state is None)) and (self._city is None):
+            return self._state
+        return "Unknown Location"
+
+
     def user_string(self):
-        return "Your item " + self._event + " at " + self._city + ", " + self._state + " at " + self._timestamp.strftime(config.DATE_FORMAT)
+        return "Your item " + self._event + " at " + self._location() + " at " + self._timestamp.strftime(config.DATE_FORMAT)
 
     def __str__(self):
-        return "USPSApiTrackingReply(" + self._timestamp.strftime(config.DATE_FORMAT) + ", " + self._event + ", " + self._city + ", " + self._state + ")"
+        return "USPSApiTrackingReply(" + self._timestamp.strftime(config.DATE_FORMAT) + ", " + str(self._event) + ", " + self._location() + ")"
+
+class USPSParsingError(Exception):
+    pass
 
 class USPSApiTracker(object):
-    name = "USPS-scrape"
+    name = "USPS-api"
 
-    _maybe_valid_regex = '\d{22}'
+    _maybe_valid_regex = '(\d{22}|L.*)'
 
     def maybe_valid(self, code):
         return not (re.match(self._maybe_valid_regex, code) is None)
 
     def _get_first(self, dom, name):
-        return dom.getElementsByTagName(name)[0].firstChild.nodeValue
+        elems = dom.getElementsByTagName(name)
+        if hasattr(elems[0], "firstChild") and (not (elems[0].firstChild is None)):
+            return elems[0].firstChild.nodeValue
+        else:
+            return None
 
     DATE_FORMAT = "%B %d, %Y %I:%M %p"
 
     def _parse_summary(self, dom):
         summary = dom.getElementsByTagName('TrackSummary')[0]
-        timestamp = datetime.strptime(self._get_first(summary, 'EventDate') + " " + self._get_first(summary, 'EventTime'), self.DATE_FORMAT)
+        try:
+            timestamp = datetime.strptime(self._get_first(summary, 'EventDate') + " " + self._get_first(summary, 'EventTime'), self.DATE_FORMAT)
+        except AttributeError:
+            raise USPSParsingError("error in timestamp")
+        except TypeError:
+            raise USPSParsingError("error in timestamp")
         event = self._get_first(summary, 'Event')
         city = self._get_first(summary, 'EventCity')
         state = self._get_first(summary, 'EventState')
         return USPSApiTrackingReply(timestamp, event, city, state)
+
+    def _parse_details(self, dom):
+        result = []
+        for d in dom.getElementsByTagName('TrackDetail'):
+            timestamp = datetime.strptime(self._get_first(d, 'EventDate') + " " + self._get_first(d, 'EventTime'), self.DATE_FORMAT)
+            event = self._get_first(d, 'Event')
+            city = self._get_first(d, 'EventCity')
+            state = self._get_first(d, 'EventState')
+            result.append(USPSApiTrackingReply(timestamp, event, city, state))
+        return result
 
     def track(self, tracking_code):
         url = 'http://production.shippingapis.com/ShippingApi.dll?API=TrackV2&XML=<TrackFieldRequest USERID="' + config.USPS_USERNAME + '"><TrackID ID="' + tracking_code + '"></TrackID></TrackFieldRequest>'
@@ -102,6 +137,14 @@ class USPSApiTracker(object):
         dom = minidom.parseString(data.text)
         try:
             return self._parse_summary(dom)
+        except USPSParsingError:
+            _log.debug("Could not parse summary, attempting to parse details.")
+            details = self._parse_details(dom)
+            print details
+            return details[0]
         except IndexError, e:
             _log.info("Unable to retrieve tracking info via API for %s", tracking_code)
             return None
+        except Exception, e:
+            _log.error("Unexpected exception: " + dom.toprettyxml())
+            raise
